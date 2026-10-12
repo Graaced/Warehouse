@@ -1,0 +1,66 @@
+# Cartelle generate da Unity: si ricreano da sole all'apertura del progetto
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Informazioni di debug che Burst genera nelle build: non vanno mai distribuite
+*_BurstDebugInformation_DoNotShip/
+
+# Plugin JetBrains Rider generato automaticamente
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# File degli editor di codice (Visual Studio, Rider, VS Code)
+.vs/
+.idea/
+.vscode/
+.consulo/
+.gradle/
+ExportedObj/
+
+# Progetti e soluzioni generati da Unity per l'IDE
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Meta dei file di debug
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Log e report di crash
+sysinfo.txt
+mono_crash.*
+crashlytics-buildid.txt
+
+# Build e pacchetti esportati
+*.apk
+*.aab
+*.app
+*.unitypackage
+
+# Contenuti generati da Addressables
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# File di sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
