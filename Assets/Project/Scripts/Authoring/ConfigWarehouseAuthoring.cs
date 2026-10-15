@@ -3,7 +3,7 @@ using UnityEngine;
 public class ConfigWarehouseAuthoring : MonoBehaviour
 {
     [Header("WareHouse Configuration")]
-    [Range(1, 100)]
+    [Range(1, 10000)]
     public int RobotCount = 5;
 
     [Range(1, 50)]
