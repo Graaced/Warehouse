@@ -38,6 +38,15 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
     [Range(1, 200)]
     public int InitialRobots = 18;
 
+    [Header("Orders")]
+    [Range(10, 300)]
+    public int OrdersPerMinute = 90;
+
+    [Header("Timings (seconds)")]
+    public float LiftSeconds = 0.4f;
+    public float RespawnMinSeconds = 5f;
+    public float RespawnMaxSeconds = 15f;
+
     [Header("Prefab")]
     public GameObject Robot;
     public GameObject Shelf;

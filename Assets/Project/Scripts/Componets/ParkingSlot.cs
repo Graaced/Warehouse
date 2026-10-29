@@ -6,4 +6,5 @@ public struct ParkingSlot : IComponentData
     public int2 Cell;
     public int Index;
     public bool Active;
+    public Entity Robot;
 }
