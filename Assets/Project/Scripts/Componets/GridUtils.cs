@@ -14,33 +14,29 @@ public static class GridUtils
         return new float3(cell.x, 0f, cell.y);
     }
 
-    /// <summary>
-    /// returns the next cell to traverse to move from 'current' to 'target'.
-    /// strategy: first align X, then align Y.
-    /// </summary>
-    public static int2 NextCell(int2 current, int2 target)
-    {
-        int2 delta = target - current;
-
-        if (delta.x != 0)
-            return current + new int2(math.sign(delta.x), 0);
-
-        if (delta.y != 0)
-            return current + new int2(0, math.sign(delta.y));
-
-        return current; // already arrived
-    }
-
     public static int CellIndex(int2 cell, int width)
     {
         return cell.y * width + cell.x;
     }
 
-    /// <summary>
-    /// True if the robot has reached the target cell.
-    /// </summary>
-    public static bool IsAtTarget(int2 current, int2 target)
+    public static int2 IndexToCell(int index, int width)
     {
-        return math.all(current == target);
+        return new int2(index % width, index / width);
+    }
+
+    public static int2 Direction(int index)
+    {
+        return index switch
+        {
+            0 => new int2(1, 0),
+            1 => new int2(-1, 0),
+            2 => new int2(0, 1),
+            _ => new int2(0, -1)
+        };
+    }
+
+    public static int Distance(int2 a, int2 b)
+    {
+        return math.csum(math.abs(a - b));
     }
 }

@@ -10,12 +10,19 @@ public class RobotBaker : Baker<RobotAuthoring>
         var entity = GetEntity(TransformUsageFlags.Dynamic);
         AddComponent<TagRobot>(entity);
 
-        AddComponent(entity, new RobotMovement
+        AddComponent(entity, new RobotConfig
         {
-            CurrentCell = int2.zero,
-            TargetCell = int2.zero,
-            MoveSpeed = 4f
+            MetersPerSecond = authoring.MetersPerSecond,
+            RepathDelay = authoring.RepathDelay
         });
+
+        AddComponent<RobotPosition>(entity);
+        AddComponent<RobotDestination>(entity);
+        AddComponent<RobotNavigation>(entity);
+        AddComponent<RobotIntent>(entity);
+        AddBuffer<PathNode>(entity);
+        AddComponent<PathRequest>(entity);
+        SetComponentEnabled<PathRequest>(entity, false);
 
         var material = GetComponent<MeshRenderer>().sharedMaterial;
         DependsOn(material);

@@ -43,6 +43,7 @@ public partial struct WHGenerationSystem : ISystem
         }
 
         var cells = new NativeArray<CellState>(width * height, Allocator.Temp);
+        var occupants = new NativeArray<CellOccupant>(width * height, Allocator.Temp);
 
         for (int pair = 0; pair < config.ShelfColumnPairs; pair++)
         {
@@ -98,10 +99,9 @@ public partial struct WHGenerationSystem : ISystem
             }
 
             var robot = Spawn(em, config.Robot, cell);
-            var movement = em.GetComponentData<RobotMovement>(robot);
-            movement.CurrentCell = cell;
-            movement.TargetCell = cell;
-            em.SetComponentData(robot, movement);
+            em.SetComponentData(robot, new RobotPosition { Cell = cell });
+            em.SetComponentData(robot, new RobotDestination { Cell = cell });
+            occupants[GridUtils.CellIndex(cell, width)] = new CellOccupant { Robot = robot };
         }
 
         for (int z = 0; z < height; z++)
@@ -112,8 +112,10 @@ public partial struct WHGenerationSystem : ISystem
         em.AddComponent<TagGrid>(grid);
         em.AddComponentData(grid, new GridDimensions { Width = width, Height = height });
         em.AddBuffer<CellState>(grid).AddRange(cells);
+        em.AddBuffer<CellOccupant>(grid).AddRange(occupants);
 
         cells.Dispose();
+        occupants.Dispose();
     }
 
     static int Distribute(int index, int count, int from, int length)

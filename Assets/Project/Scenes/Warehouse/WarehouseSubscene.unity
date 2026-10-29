@@ -173,7 +173,7 @@ MonoBehaviour:
   ChargerCount: 5
   LoadingBayCount: 3
   MaxRobots: 60
-  InitialRobots: 18
+  InitialRobots: 27
   Robot: {fileID: 680122068983977525, guid: bcc5383a40242704089cf201811d4b23, type: 3}
   Shelf: {fileID: 5331893312400404239, guid: a15f9e31c3e46894e899877f498628fb, type: 3}
   PackingStation: {fileID: 1169927019023615591, guid: 57424e7c70bce2946bb6dac5deeba8fe, type: 3}
