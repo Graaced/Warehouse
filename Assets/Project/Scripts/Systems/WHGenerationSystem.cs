@@ -1,109 +1,143 @@
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 using Unity.Transforms;
+using UnityEngine;
 
-[BurstCompile]
 public partial struct WHGenerationSystem : ISystem
 {
-    [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<ConfigWarehouse>();
     }
 
-
     public void OnUpdate(ref SystemState state)
     {
+        state.Enabled = false;
+
         var config = SystemAPI.GetSingleton<ConfigWarehouse>();
         var em = state.EntityManager;
 
-        // creation of the Grid entity with the cell buffer
-        var gridEntity = em.CreateEntity();
-        em.AddComponentData<GridDimensions > (gridEntity, new GridDimensions
-        {
-            Width = config.GridWidth,
-            Height = config.GridHeight
-        });
+        int span = config.ShelfColumnPairs * 2 + (config.ShelfColumnPairs - 1) * config.AisleWidth;
+        int slotRows = (config.MaxRobots + span - 1) / span;
+        int parkingHeight = slotRows + slotRows / 2;
 
-        var cellsBuffer = em.AddBuffer<CellState>(gridEntity);
-        for (int i = 0; i < config.GridWidth * config.GridHeight; i++)
+        int width = span + config.SideAisleWidth * 2 + 4;
+        int height = parkingHeight + config.BottomBlockRows + config.TopBlockRows + config.AisleWidth * 3 + 1;
+
+        int shelvesX = config.SideAisleWidth + 2;
+        int bottomBlockZ = parkingHeight + config.AisleWidth + 1;
+        int topBlockZ = bottomBlockZ + config.BottomBlockRows + config.AisleWidth;
+        int shelfZoneLength = topBlockZ + config.TopBlockRows - bottomBlockZ;
+        int bayZoneLength = bottomBlockZ - 1;
+        int rightColumnX = width - 2;
+        int stationHalfLength = config.PackingStationLength / 2;
+
+        if (config.PackingStationCount * (config.PackingStationLength + 1) > height - 2 ||
+            config.ChargerCount * 2 > shelfZoneLength ||
+            config.LoadingBayCount * 2 > bayZoneLength)
         {
-            cellsBuffer.Add(new CellState { Type = 0, RespawnTimer = 0 });
+            Debug.LogError("[WHGeneration] Not enough space for packing stations, chargers or loading bays!");
+            return;
         }
 
+        var cells = new NativeArray<CellState>(width * height, Allocator.Temp);
 
-        // deploy the robots in the waiting area
-        var robotInstances = em.Instantiate(config.Robot, config.RobotCount, Allocator.Temp);
-        for (int i = 0; i < robotInstances.Length; i++)
+        for (int pair = 0; pair < config.ShelfColumnPairs; pair++)
         {
-            // start Cell 
-            int2 startCell = new int2(
-                i % config.GridWidth,
-                (i / config.GridWidth) % config.GridHeight
-            );
-
-            // arrival cell: the corner opposite the starting point.
-            int2 targetCell = new int2(
-                config.GridWidth - 1 - startCell.x,
-                config.GridHeight - 1 - startCell.y
-            );
-
-            // 3d position aligned with the starting cell.
-            var pos = new LocalTransform
+            for (int column = 0; column < 2; column++)
             {
-                Position = new float3(startCell.x, 0f, startCell.y),
-                Rotation = quaternion.identity,
-                Scale = 1f
-            };
-            em.SetComponentData(robotInstances[i], pos);
+                int x = shelvesX + pair * (2 + config.AisleWidth) + column;
 
-            // set robot movement
-            em.SetComponentData(robotInstances[i], new RobotMovement
-            {
-                CurrentCell = startCell,
-                TargetCell = targetCell,
-                MoveSpeed = 2f
-            });
+                for (int row = 0; row < config.BottomBlockRows; row++)
+                    Place(em, cells, width, config.Shelf, new int2(x, bottomBlockZ + row), CellKind.Shelf);
 
-           
+                for (int row = 0; row < config.TopBlockRows; row++)
+                    Place(em, cells, width, config.Shelf, new int2(x, topBlockZ + row), CellKind.Shelf);
+            }
         }
 
-        robotInstances.Dispose();
-
-
-        // place the shelves at random positions on the grid
-        var rng = Random.CreateFromIndex(42);
-        for (int i = 0; i < config.ShelfCount; i++)
+        for (int i = 0; i < config.PackingStationCount; i++)
         {
-            int x = rng.NextInt(1, config.GridWidth - 1);
-            int z = rng.NextInt(1, config.GridHeight - 1);
+            var cell = new int2(1, Distribute(i, config.PackingStationCount, 1, height - 2));
+            var station = Spawn(em, config.PackingStation, cell);
+            em.SetComponentData(station, new StationPosition { Cell = cell });
 
-            var scaffale = em.Instantiate(config.Shelf);
-            em.SetComponentData(scaffale, new LocalTransform
-            {
-                Position = new float3(x, 0, z),
-                Rotation = quaternion.identity,
-                Scale = 1f
-            });
-
-            int cellIndex = z * config.GridWidth + x;
-            cellsBuffer[cellIndex] = new CellState { Type = 0, RespawnTimer = 0 };
+            for (int dz = -stationHalfLength; dz <= stationHalfLength; dz++)
+                Mark(cells, width, cell + new int2(0, dz), CellKind.PackingStation);
         }
 
-        //  packaging station
-        var stazione = em.Instantiate(config.PackingStation);
-        em.SetComponentData(stazione, new LocalTransform
+        for (int i = 0; i < config.ChargerCount; i++)
         {
-            Position = new float3(config.GridWidth - 1, 0, config.GridHeight - 1),
-            Rotation = quaternion.identity,
-            Scale = 1f
-        });
+            var cell = new int2(rightColumnX, Distribute(i, config.ChargerCount, bottomBlockZ, shelfZoneLength));
+            var charger = Place(em, cells, width, config.Charger, cell, CellKind.Charger);
+            em.SetComponentData(charger, new ChargerPosition { Cell = cell });
+        }
 
-        // 5. Distruggi il singleton ConfigMagazzino (non serve più)
-        var configEntity = SystemAPI.GetSingletonEntity<ConfigWarehouse>();
-        em.DestroyEntity(configEntity);
+        for (int i = 0; i < config.LoadingBayCount; i++)
+        {
+            var cell = new int2(rightColumnX, Distribute(i, config.LoadingBayCount, 1, bayZoneLength));
+            var bay = Place(em, cells, width, config.LoadingBay, cell, CellKind.LoadingBay);
+            em.SetComponentData(bay, new LoadingAreaPosition { Cell = cell });
+        }
 
+        for (int i = 0; i < config.MaxRobots; i++)
+        {
+            int row = i / span;
+            var cell = new int2(shelvesX + i % span, parkingHeight - row - (row + 1) / 2);
+            bool active = i < config.InitialRobots;
+
+            var slot = Place(em, cells, width, config.ParkingSlot, cell, CellKind.Parking);
+            em.SetComponentData(slot, new ParkingSlot { Cell = cell, Index = i, Active = active });
+
+            if (!active)
+            {
+                em.AddComponent<DisableRendering>(slot);
+                continue;
+            }
+
+            var robot = Spawn(em, config.Robot, cell);
+            var movement = em.GetComponentData<RobotMovement>(robot);
+            movement.CurrentCell = cell;
+            movement.TargetCell = cell;
+            em.SetComponentData(robot, movement);
+        }
+
+        for (int z = 0; z < height; z++)
+            for (int x = 0; x < width; x++)
+                Spawn(em, config.FloorTile, new int2(x, z));
+
+        var grid = em.CreateEntity();
+        em.AddComponent<TagGrid>(grid);
+        em.AddComponentData(grid, new GridDimensions { Width = width, Height = height });
+        em.AddBuffer<CellState>(grid).AddRange(cells);
+
+        cells.Dispose();
+    }
+
+    static int Distribute(int index, int count, int from, int length)
+    {
+        return from + (index * 2 + 1) * length / (count * 2);
+    }
+
+    static Entity Place(EntityManager em, NativeArray<CellState> cells, int width, Entity prefab, int2 cell, CellKind kind)
+    {
+        Mark(cells, width, cell, kind);
+        return Spawn(em, prefab, cell);
+    }
+
+    static void Mark(NativeArray<CellState> cells, int width, int2 cell, CellKind kind)
+    {
+        cells[GridUtils.CellIndex(cell, width)] = new CellState { Kind = kind, Fill = CellFill.Full };
+    }
+
+    static Entity Spawn(EntityManager em, Entity prefab, int2 cell)
+    {
+        var entity = em.Instantiate(prefab);
+        var transform = em.GetComponentData<LocalTransform>(prefab);
+        transform.Position = new float3(cell.x, transform.Position.y, cell.y);
+        em.SetComponentData(entity, transform);
+        return entity;
     }
 }

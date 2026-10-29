@@ -6,5 +6,6 @@ public class PackingStationBaker : Baker<PackingStationAuthoring>
     {
         var entity = GetEntity(TransformUsageFlags.Dynamic);
         AddComponent<TagPackingStation>(entity);
+        AddComponent<StationPosition>(entity);
     }
 }

@@ -1,12 +1,13 @@
 using Unity.Entities;
-using Unity.Transforms;
 
 public class ShelfBaker : Baker<ShelfAuthoring>
 {
     public override void Bake(ShelfAuthoring authoring)
     {
-        var Entity = GetEntity(TransformUsageFlags.Dynamic);
+        var entity = GetEntity(TransformUsageFlags.Dynamic);
+        AddComponent<TagShelf>(entity);
 
-        AddComponent<TagShelf>(Entity);
+        if (authoring.Package != null)
+            AddComponent(entity, new ShelfPackage { Value = GetEntity(authoring.Package, TransformUsageFlags.Dynamic) });
     }
 }
