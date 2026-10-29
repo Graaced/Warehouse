@@ -16,6 +16,11 @@ public struct ConfigWarehouse : IComponentData
     public int MaxRobots;
     public int InitialRobots;
 
+    public int OrdersPerMinute;
+    public float LiftSeconds;
+    public float RespawnMinSeconds;
+    public float RespawnMaxSeconds;
+
     public Entity Robot;
     public Entity Shelf;
     public Entity PackingStation;

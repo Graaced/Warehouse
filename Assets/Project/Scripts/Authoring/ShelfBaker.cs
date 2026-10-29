@@ -6,8 +6,15 @@ public class ShelfBaker : Baker<ShelfAuthoring>
     {
         var entity = GetEntity(TransformUsageFlags.Dynamic);
         AddComponent<TagShelf>(entity);
+        AddComponent<ShelfCell>(entity);
 
         if (authoring.Package != null)
-            AddComponent(entity, new ShelfPackage { Value = GetEntity(authoring.Package, TransformUsageFlags.Dynamic) });
+        {
+            AddComponent(entity, new ShelfPackage
+            {
+                Value = GetEntity(authoring.Package, TransformUsageFlags.Dynamic),
+                Scale = authoring.Package.transform.localScale.x
+            });
+        }
     }
 }

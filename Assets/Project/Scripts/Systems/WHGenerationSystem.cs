@@ -52,10 +52,10 @@ public partial struct WHGenerationSystem : ISystem
                 int x = shelvesX + pair * (2 + config.AisleWidth) + column;
 
                 for (int row = 0; row < config.BottomBlockRows; row++)
-                    Place(em, cells, width, config.Shelf, new int2(x, bottomBlockZ + row), CellKind.Shelf);
+                    PlaceShelf(em, cells, width, config.Shelf, new int2(x, bottomBlockZ + row));
 
                 for (int row = 0; row < config.TopBlockRows; row++)
-                    Place(em, cells, width, config.Shelf, new int2(x, topBlockZ + row), CellKind.Shelf);
+                    PlaceShelf(em, cells, width, config.Shelf, new int2(x, topBlockZ + row));
             }
         }
 
@@ -90,10 +90,10 @@ public partial struct WHGenerationSystem : ISystem
             bool active = i < config.InitialRobots;
 
             var slot = Place(em, cells, width, config.ParkingSlot, cell, CellKind.Parking);
-            em.SetComponentData(slot, new ParkingSlot { Cell = cell, Index = i, Active = active });
 
             if (!active)
             {
+                em.SetComponentData(slot, new ParkingSlot { Cell = cell, Index = i });
                 em.AddComponent<DisableRendering>(slot);
                 continue;
             }
@@ -101,6 +101,8 @@ public partial struct WHGenerationSystem : ISystem
             var robot = Spawn(em, config.Robot, cell);
             em.SetComponentData(robot, new RobotPosition { Cell = cell });
             em.SetComponentData(robot, new RobotDestination { Cell = cell });
+            em.SetComponentData(robot, new RobotAssignment { ParkingSlot = slot });
+            em.SetComponentData(slot, new ParkingSlot { Cell = cell, Index = i, Active = true, Robot = robot });
             occupants[GridUtils.CellIndex(cell, width)] = new CellOccupant { Robot = robot };
         }
 
@@ -121,6 +123,12 @@ public partial struct WHGenerationSystem : ISystem
     static int Distribute(int index, int count, int from, int length)
     {
         return from + (index * 2 + 1) * length / (count * 2);
+    }
+
+    static void PlaceShelf(EntityManager em, NativeArray<CellState> cells, int width, Entity prefab, int2 cell)
+    {
+        var shelf = Place(em, cells, width, prefab, cell, CellKind.Shelf);
+        em.SetComponentData(shelf, new ShelfCell { Cell = cell });
     }
 
     static Entity Place(EntityManager em, NativeArray<CellState> cells, int width, Entity prefab, int2 cell, CellKind kind)
