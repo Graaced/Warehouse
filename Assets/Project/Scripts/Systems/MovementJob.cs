@@ -12,6 +12,7 @@ public partial struct MovementJob : IJobEntity
     {
         float3 currentPos = transform.Position;
         float3 targetPos = GridUtils.CellToWorld(movement.CurrentCell);
+        targetPos.y = currentPos.y;
 
         // if it has reached the center of the current cell...
         if (math.distancesq(currentPos, targetPos) < 0.0001f)
@@ -21,6 +22,7 @@ public partial struct MovementJob : IJobEntity
             {
                 movement.CurrentCell = GridUtils.NextCell(movement.CurrentCell, movement.TargetCell);
                 targetPos = GridUtils.CellToWorld(movement.CurrentCell);
+                targetPos.y = currentPos.y;
             }
         }
 

@@ -163,13 +163,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e4a1902f5f4b7d4296a25e8175bf3d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ConfigWarehouseAuthoring
-  RobotCount: 6
-  ShelfCount: 10
-  GridWidth: 20
-  GridHeight: 20
-  Robot: {fileID: 349781065194521320, guid: e9c63b71166f695498fc47457f037d90, type: 3}
-  Shelf: {fileID: 8677266940376357558, guid: ec3c3cdaa2514bf4c8ac060e0b0eed6b, type: 3}
-  PackingStation: {fileID: 6153414375406012163, guid: 74c5090310dbfb94aa09dcc4c59c3e23, type: 3}
+  ShelfColumnPairs: 6
+  TopBlockRows: 6
+  BottomBlockRows: 7
+  AisleWidth: 4
+  SideAisleWidth: 8
+  PackingStationCount: 4
+  PackingStationLength: 3
+  ChargerCount: 5
+  LoadingBayCount: 3
+  MaxRobots: 60
+  InitialRobots: 18
+  Robot: {fileID: 680122068983977525, guid: bcc5383a40242704089cf201811d4b23, type: 3}
+  Shelf: {fileID: 5331893312400404239, guid: a15f9e31c3e46894e899877f498628fb, type: 3}
+  PackingStation: {fileID: 1169927019023615591, guid: 57424e7c70bce2946bb6dac5deeba8fe, type: 3}
+  Charger: {fileID: 6851611789143269520, guid: 271b119e387fcfd41bdcc4ae0da8bc0a, type: 3}
+  LoadingBay: {fileID: 5368927304831617533, guid: d94d9acc64568e64883ff54ce0a28796, type: 3}
+  ParkingSlot: {fileID: 6930262268206170532, guid: 0203ca45cdbbab04aad51386816a8eeb, type: 3}
+  FloorTile: {fileID: 4936940859921127316, guid: 57588b25fddf44c4c8808da887046f87, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

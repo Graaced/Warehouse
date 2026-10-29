@@ -5,62 +5,48 @@ public class ConfigWarehouseBaker : Baker<ConfigWarehouseAuthoring>
 {
     public override void Bake(ConfigWarehouseAuthoring authoring)
     {
-        // VALIDATION
-
-        if (authoring.RobotCount <= 0)
+        if (authoring.InitialRobots > authoring.MaxRobots)
         {
-            Debug.LogError("[ConfigWarehouse] RobotCount has to be > 0 !", authoring);
+            Debug.LogError("[ConfigWarehouse] InitialRobots can't exceed MaxRobots!", authoring);
             return;
         }
 
-        if (authoring.ShelfCount <= 0)
+        if (authoring.PackingStationLength % 2 == 0)
         {
-            Debug.LogError("[ConfigWarehouse] ShelfCount has to be > 0!", authoring);
+            Debug.LogError("[ConfigWarehouse] PackingStationLength must be odd!", authoring);
             return;
         }
 
-        if (authoring.GridWidth < 2 || authoring.GridHeight < 2)
+        if (authoring.Robot == null || authoring.Shelf == null || authoring.PackingStation == null ||
+            authoring.Charger == null || authoring.LoadingBay == null || authoring.ParkingSlot == null ||
+            authoring.FloorTile == null)
         {
-            Debug.LogError("[ConfigWarehouse] The grid must be at least 2x2!", authoring);
+            Debug.LogError("[ConfigWarehouse] All prefabs must be assigned!", authoring);
             return;
         }
-
-        if (authoring.Robot == null)
-        {
-            Debug.LogError("[ConfigWarehouse] Robot unassigned!!", authoring);
-            return;
-        }
-
-        if (authoring.Shelf == null)
-        {
-            Debug.LogError("[ConfigWarehouse] Shelf unassigned!!", authoring);
-            return;
-        }
-
-        if (authoring.PackingStation == null)
-        {
-            Debug.LogError("[ConfigWarehouse] PackingStation unassigned!!", authoring);
-            return;
-        }
-
-
-        //ENTITY CREATION
 
         var entity = GetEntity(TransformUsageFlags.None);
 
         AddComponent(entity, new ConfigWarehouse
-            {
-
-                RobotCount = authoring.RobotCount,
-                ShelfCount = authoring.ShelfCount,
-                GridWidth = authoring.GridWidth,
-                GridHeight = authoring.GridHeight,
-                Robot = GetEntity(authoring.Robot, TransformUsageFlags.Dynamic),
-                Shelf = GetEntity(authoring.Shelf, TransformUsageFlags.Dynamic),
-                PackingStation = GetEntity(authoring.PackingStation, TransformUsageFlags.Dynamic),
+        {
+            ShelfColumnPairs = authoring.ShelfColumnPairs,
+            TopBlockRows = authoring.TopBlockRows,
+            BottomBlockRows = authoring.BottomBlockRows,
+            AisleWidth = authoring.AisleWidth,
+            SideAisleWidth = authoring.SideAisleWidth,
+            PackingStationCount = authoring.PackingStationCount,
+            PackingStationLength = authoring.PackingStationLength,
+            ChargerCount = authoring.ChargerCount,
+            LoadingBayCount = authoring.LoadingBayCount,
+            MaxRobots = authoring.MaxRobots,
+            InitialRobots = authoring.InitialRobots,
+            Robot = GetEntity(authoring.Robot, TransformUsageFlags.Dynamic),
+            Shelf = GetEntity(authoring.Shelf, TransformUsageFlags.Dynamic),
+            PackingStation = GetEntity(authoring.PackingStation, TransformUsageFlags.Dynamic),
+            Charger = GetEntity(authoring.Charger, TransformUsageFlags.Dynamic),
+            LoadingBay = GetEntity(authoring.LoadingBay, TransformUsageFlags.Dynamic),
+            ParkingSlot = GetEntity(authoring.ParkingSlot, TransformUsageFlags.Dynamic),
+            FloorTile = GetEntity(authoring.FloorTile, TransformUsageFlags.Dynamic),
         });
-
-
-
     }
 }

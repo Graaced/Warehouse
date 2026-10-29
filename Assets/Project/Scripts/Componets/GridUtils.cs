@@ -31,6 +31,11 @@ public static class GridUtils
         return current; // already arrived
     }
 
+    public static int CellIndex(int2 cell, int width)
+    {
+        return cell.y * width + cell.x;
+    }
+
     /// <summary>
     /// True if the robot has reached the target cell.
     /// </summary>

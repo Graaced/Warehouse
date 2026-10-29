@@ -1,6 +1,7 @@
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Rendering;
+using UnityEngine;
 
 public class RobotBaker : Baker<RobotAuthoring>
 {
@@ -11,19 +12,21 @@ public class RobotBaker : Baker<RobotAuthoring>
 
         AddComponent(entity, new RobotMovement
         {
-            CurrentCell = new Unity.Mathematics.int2(0, 0),
-            TargetCell = new Unity.Mathematics.int2(10, 5),
-            MoveSpeed = 2f
+            CurrentCell = int2.zero,
+            TargetCell = int2.zero,
+            MoveSpeed = 4f
         });
+
+        var material = GetComponent<MeshRenderer>().sharedMaterial;
+        DependsOn(material);
+        var color = material.GetColor("_BaseColor").linear;
 
         AddComponent(entity, new URPMaterialPropertyBaseColor
         {
-            Value = new float4(0.2f, 0.7f, 1f, 1f) // azure
+            Value = new float4(color.r, color.g, color.b, color.a)
         });
 
-        AddComponent(entity, new URPMaterialPropertyEmissionColor
-        {
-            Value = new float4(0f, 0.5f, 1f, 1f) // azure glow
-        });
+        if (authoring.Package != null)
+            AddComponent(entity, new RobotPackage { Value = GetEntity(authoring.Package, TransformUsageFlags.Dynamic) });
     }
 }
