@@ -8,18 +8,24 @@ public partial struct MovementSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        // the system works only if there are robots with RobotMovement
-        state.RequireForUpdate<RobotMovement>();
+        state.RequireForUpdate<TagGrid>();
+        state.RequireForUpdate<TagRobot>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        float dt = SystemAPI.Time.DeltaTime;
+        var grid = SystemAPI.GetSingletonEntity<TagGrid>();
+
+        state.Dependency = new IntentJob().ScheduleParallel(state.Dependency);
 
         state.Dependency = new MovementJob
         {
-            DeltaTime = dt
-        }.ScheduleParallel(state.Dependency);
+            OccupantLookup = SystemAPI.GetBufferLookup<CellOccupant>(),
+            IntentLookup = SystemAPI.GetComponentLookup<RobotIntent>(true),
+            Grid = grid,
+            Width = SystemAPI.GetComponent<GridDimensions>(grid).Width,
+            DeltaTime = SystemAPI.Time.DeltaTime
+        }.Schedule(state.Dependency);
     }
 }

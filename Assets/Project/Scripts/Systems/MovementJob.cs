@@ -1,39 +1,104 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
 [BurstCompile]
+[WithOptions(EntityQueryOptions.IgnoreComponentEnabledState)]
 public partial struct MovementJob : IJobEntity
 {
+    public BufferLookup<CellOccupant> OccupantLookup;
+    [ReadOnly] public ComponentLookup<RobotIntent> IntentLookup;
+    public Entity Grid;
+    public int Width;
     public float DeltaTime;
 
-    public void Execute(ref LocalTransform transform, ref RobotMovement movement)
+    public void Execute(Entity entity, ref RobotNavigation navigation, ref RobotPosition position, ref LocalTransform transform,
+        in RobotConfig config, in RobotDestination destination, in DynamicBuffer<PathNode> path, EnabledRefRW<PathRequest> request)
     {
-        float3 currentPos = transform.Position;
-        float3 targetPos = GridUtils.CellToWorld(movement.CurrentCell);
-        targetPos.y = currentPos.y;
+        var occupants = OccupantLookup[Grid];
 
-        // if it has reached the center of the current cell...
-        if (math.distancesq(currentPos, targetPos) < 0.0001f)
+        if (navigation.Moving && !Move(ref navigation, ref position, ref transform, config, path, occupants))
+            return;
+
+        if (request.ValueRO)
+            return;
+
+        if (navigation.PathIndex >= path.Length)
         {
-            // ...and has not yet reached the final destination, it moves to the next cell
-            if (!GridUtils.IsAtTarget(movement.CurrentCell, movement.TargetCell))
-            {
-                movement.CurrentCell = GridUtils.NextCell(movement.CurrentCell, movement.TargetCell);
-                targetPos = GridUtils.CellToWorld(movement.CurrentCell);
-                targetPos.y = currentPos.y;
-            }
+            if (!position.Cell.Equals(destination.Cell))
+                Wait(ref navigation, request, config, false);
+            return;
         }
 
-        // move to the current cell (which is now the next one to reach)
-        float3 delta = targetPos - currentPos;
+        int2 next = path[navigation.PathIndex].Cell;
+        int nextIndex = GridUtils.CellIndex(next, Width);
+        var occupant = occupants[nextIndex].Robot;
+
+        if (occupant == Entity.Null || occupant == entity)
+        {
+            occupants[nextIndex] = new CellOccupant { Robot = entity };
+            navigation.Moving = true;
+            navigation.BlockedTime = 0f;
+            return;
+        }
+
+        var other = IntentLookup[occupant];
+        bool swap = other.HasNext && other.Next.Equals(position.Cell);
+
+        if (swap && HasLowerPriority(entity, navigation.Priority, occupant, other.Priority))
+        {
+            navigation.AvoidRobots = true;
+            request.ValueRW = true;
+            return;
+        }
+
+        Wait(ref navigation, request, config, true);
+    }
+
+    bool Move(ref RobotNavigation navigation, ref RobotPosition position, ref LocalTransform transform, in RobotConfig config,
+        in DynamicBuffer<PathNode> path, DynamicBuffer<CellOccupant> occupants)
+    {
+        int2 next = path[navigation.PathIndex].Cell;
+        float3 target = new float3(next.x, transform.Position.y, next.y);
+        float3 delta = target - transform.Position;
         float distance = math.length(delta);
+        float step = config.MetersPerSecond * DeltaTime;
 
         if (distance > 0.0001f)
         {
-            float step = math.min(distance, movement.MoveSpeed * DeltaTime);
-            transform.Position = currentPos + math.normalizesafe(delta) * step;
+            var look = quaternion.LookRotationSafe(delta, math.up());
+            transform.Rotation = math.slerp(transform.Rotation, look, math.saturate(DeltaTime * 12f));
         }
+
+        if (step < distance)
+        {
+            transform.Position += delta / distance * step;
+            return false;
+        }
+
+        transform.Position = target;
+        occupants[GridUtils.CellIndex(position.Cell, Width)] = default;
+        position.Cell = next;
+        navigation.PathIndex++;
+        navigation.Moving = false;
+        return true;
+    }
+
+    void Wait(ref RobotNavigation navigation, EnabledRefRW<PathRequest> request, in RobotConfig config, bool avoid)
+    {
+        navigation.BlockedTime += DeltaTime;
+
+        if (navigation.BlockedTime < config.RepathDelay)
+            return;
+
+        navigation.AvoidRobots = avoid;
+        request.ValueRW = true;
+    }
+
+    static bool HasLowerPriority(Entity self, int selfPriority, Entity other, int otherPriority)
+    {
+        return selfPriority < otherPriority || (selfPriority == otherPriority && self.Index < other.Index);
     }
 }
