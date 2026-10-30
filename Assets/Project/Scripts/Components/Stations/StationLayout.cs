@@ -4,7 +4,8 @@ using Unity.Mathematics;
 public enum StationKind : byte
 {
     Packing,
-    Loading
+    Loading,
+    Charging
 }
 
 public struct StationLayout : IComponentData

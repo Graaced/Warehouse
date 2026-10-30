@@ -53,6 +53,16 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
     public float RespawnMinSeconds = 5f;
     public float RespawnMaxSeconds = 15f;
 
+    [Header("Battery (percent)")]
+    [Range(0, 100)]
+    public float MinInitialBattery = 40f;
+
+    [Range(0, 100)]
+    public float LowBattery = 25f;
+
+    public float BatteryPerCell = 0.35f;
+    public float ChargePerSecond = 30f;
+
     [Header("Traffic")]
     [Range(2, 20)]
     public int ApproachDistance = 6;
@@ -101,6 +111,10 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
                 DeliverySeconds = authoring.DeliverySeconds,
                 RespawnMinSeconds = authoring.RespawnMinSeconds,
                 RespawnMaxSeconds = authoring.RespawnMaxSeconds,
+                MinInitialBattery = authoring.MinInitialBattery,
+                BatteryPerCell = authoring.BatteryPerCell,
+                LowBattery = authoring.LowBattery,
+                ChargePerSecond = authoring.ChargePerSecond,
                 ApproachDistance = authoring.ApproachDistance,
                 StationLoadWeight = authoring.StationLoadWeight,
                 LanePenalty = authoring.LanePenalty,

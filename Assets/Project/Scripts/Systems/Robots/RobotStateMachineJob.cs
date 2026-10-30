@@ -29,10 +29,11 @@ public partial struct RobotStateMachineJob : IJobEntity
     public Entity Stats;
     public ConfigWarehouse Config;
     public double Now;
+    public float DeltaTime;
     public Random Random;
 
     public void Execute(Entity entity, ref RobotState robotState, ref ActionTimer timer, ref CurrentOrder currentOrder,
-        ref RobotAssignment assignment, ref RobotDestination destination, in RobotPosition position,
+        ref RobotAssignment assignment, ref RobotDestination destination, ref RobotBattery battery, in RobotPosition position,
         in RobotNavigation navigation, EnabledRefRW<PathRequest> request)
     {
         bool arrived = !navigation.Moving && !request.ValueRO && position.Cell.Equals(destination.Cell);
@@ -40,8 +41,24 @@ public partial struct RobotStateMachineJob : IJobEntity
         switch (robotState.Value)
         {
             case RobotStateKind.Idle:
-                if (assignment.ParkingSlot == Entity.Null)
+                if (battery.Level < Config.LowBattery && ReserveCharger(entity, ref assignment, ref destination, request, position.Cell))
+                    robotState.Value = RobotStateKind.ToCharger;
+                else if (assignment.ParkingSlot == Entity.Null)
                     ReserveParking(ref assignment, ref destination, request, position.Cell);
+                break;
+
+            case RobotStateKind.ToCharger:
+                if (UpdateStation(entity, StationKind.Charging, ref assignment, ref destination, request, position.Cell, arrived))
+                    robotState.Value = RobotStateKind.Charging;
+                break;
+
+            case RobotStateKind.Charging:
+                battery.Level = math.min(RobotBattery.Full, battery.Level + Config.ChargePerSecond * DeltaTime);
+                if (battery.Level < RobotBattery.Full)
+                    break;
+
+                ReleaseStation(ref assignment);
+                robotState.Value = RobotStateKind.Idle;
                 break;
 
             case RobotStateKind.ToShelf:
@@ -280,6 +297,55 @@ public partial struct RobotStateMachineJob : IJobEntity
         }
 
         assignment = new RobotAssignment { ParkingSlot = assignment.ParkingSlot };
+    }
+
+    // Chargers have no queue and no approach stage: a robot leaves its parking slot only once a platform cell is
+    // both unreserved and physically empty, so robots waiting for a charger never clog the right aisle.
+    bool ReserveCharger(Entity robot, ref RobotAssignment assignment, ref RobotDestination destination,
+        EnabledRefRW<PathRequest> request, int2 cell)
+    {
+        int bestStation = -1;
+        int bestSlot = -1;
+        int bestDistance = int.MaxValue;
+
+        for (int i = 0; i < Stations.Length; i++)
+        {
+            if (StationLayouts[i].Kind != StationKind.Charging)
+                continue;
+
+            var slots = SlotLookup[Stations[i]];
+
+            for (int s = 0; s < slots.Length; s++)
+            {
+                if (Table.SlotRobot[Table.SlotKey(i, s)] != Entity.Null || IsOccupied(slots[s].Cell))
+                    continue;
+
+                int distance = GridUtils.Distance(slots[s].Cell, cell);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestStation = i;
+                    bestSlot = s;
+                }
+            }
+        }
+
+        if (bestStation < 0)
+            return false;
+
+        ReleaseParking(ref assignment);
+        Table.StationLoad[bestStation]++;
+        assignment.Station = Stations[bestStation];
+        TakeSlot(robot, bestStation, bestSlot, SlotLookup[Stations[bestStation]][bestSlot], ref assignment, ref destination, request);
+        return true;
+    }
+
+    void ReleaseParking(ref RobotAssignment assignment)
+    {
+        if (Table.ParkingIndex.TryGetValue(assignment.ParkingSlot, out int parking))
+            Table.ParkingTaken[parking] = false;
+
+        assignment.ParkingSlot = Entity.Null;
     }
 
     void ReserveParking(ref RobotAssignment assignment, ref RobotDestination destination, EnabledRefRW<PathRequest> request, int2 cell)

@@ -17,10 +17,12 @@ public partial struct MovementJob : IJobEntity
     public BlobAssetReference<GridMapBlob> Map;
     public Entity Grid;
     public float DeltaTime;
+    public float BatteryPerCell;
     public int Priority;
 
     public void Execute(Entity entity, ref RobotNavigation navigation, ref RobotPosition position, ref LocalTransform transform,
-        in RobotConfig config, in RobotDestination destination, in DynamicBuffer<PathNode> path, EnabledRefRW<PathRequest> request)
+        ref RobotBattery battery, in RobotConfig config, in RobotDestination destination, in DynamicBuffer<PathNode> path,
+        EnabledRefRW<PathRequest> request)
     {
         int priority = IntentLookup[entity].Priority;
         if (priority != Priority)
@@ -28,8 +30,13 @@ public partial struct MovementJob : IJobEntity
 
         var occupants = OccupantLookup[Grid];
 
-        if (navigation.Moving && !Move(ref navigation, ref position, ref transform, config, path, occupants))
-            return;
+        if (navigation.Moving)
+        {
+            if (!Move(ref navigation, ref position, ref transform, config, path, occupants))
+                return;
+
+            battery.Level = math.max(0f, battery.Level - BatteryPerCell);
+        }
 
         if (request.ValueRO)
             return;

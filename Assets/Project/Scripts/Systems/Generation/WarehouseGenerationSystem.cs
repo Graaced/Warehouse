@@ -97,17 +97,32 @@ public partial struct WarehouseGenerationSystem : ISystem
             var center = layout.RightColumn(i);
 
             if (layout.IsLoadingBay(i))
-            {
                 SpawnStation(em, config.LoadingBay, StationKind.Loading, layout, center, kinds);
-                continue;
-            }
+            else
+                SpawnCharger(em, config.Charger, layout, center, kinds);
+        }
+    }
 
-            var charger = em.Instantiate(config.Charger);
-            Place(em, charger, em.GetComponentData<LocalTransform>(config.Charger), center);
-            em.SetComponentData(charger, new ChargerPosition { Cell = center });
+    // A robot charges standing on the platform, so the platform cells themselves are the slots and there is no
+    // queue: robots that find every charger taken keep waiting in the parking.
+    static void SpawnCharger(EntityManager em, Entity prefab, in WarehouseLayout layout, int2 center, NativeArray<CellKind> kinds)
+    {
+        var charger = em.Instantiate(prefab);
+        Place(em, charger, em.GetComponentData<LocalTransform>(prefab), center);
+        em.SetComponentData(charger, new StationLayout
+        {
+            Kind = StationKind.Charging,
+            Center = center,
+            Approach = layout.ApproachCell(center, StationKind.Charging)
+        });
 
-            for (int dz = -layout.StationHalfLength; dz <= layout.StationHalfLength; dz++)
-                kinds[Index(layout, center + new int2(0, dz))] = CellKind.Charger;
+        var slots = em.GetBuffer<StationSlot>(charger);
+
+        for (int dz = -layout.StationHalfLength; dz <= layout.StationHalfLength; dz++)
+        {
+            var cell = center + new int2(0, dz);
+            kinds[Index(layout, cell)] = CellKind.Charger;
+            slots.Add(new StationSlot { Cell = cell, Service = true });
         }
     }
 
@@ -143,6 +158,7 @@ public partial struct WarehouseGenerationSystem : ISystem
         var robots = em.Instantiate(config.Robot, config.InitialRobots, Allocator.Temp);
         var slotTemplate = em.GetComponentData<LocalTransform>(config.ParkingSlot);
         var robotTemplate = em.GetComponentData<LocalTransform>(config.Robot);
+        var random = Unity.Mathematics.Random.CreateFromIndex(1);
 
         for (int i = 0; i < slots.Length; i++)
         {
@@ -163,6 +179,7 @@ public partial struct WarehouseGenerationSystem : ISystem
             em.SetComponentData(robots[i], new RobotPosition { Cell = cell });
             em.SetComponentData(robots[i], new RobotDestination { Cell = cell });
             em.SetComponentData(robots[i], new RobotAssignment { ParkingSlot = slots[i] });
+            em.SetComponentData(robots[i], new RobotBattery { Level = random.NextFloat(config.MinInitialBattery, RobotBattery.Full) });
             occupants[Index(layout, cell)] = new CellOccupant { Robot = robots[i] };
         }
 

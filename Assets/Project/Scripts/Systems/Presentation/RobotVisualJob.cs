@@ -17,10 +17,22 @@ public partial struct RobotVisualJob : IJobEntity
         if (visual.Applied && visual.Shown == state.Value)
             return;
 
+        bool wasCharging = visual.Applied && visual.Shown == RobotStateKind.Charging;
+        bool isCharging = state.Value == RobotStateKind.Charging;
+
         visual.Shown = state.Value;
         visual.Applied = true;
 
         ColorLookup[entity] = new URPMaterialPropertyBaseColor { Value = palette.Get(state.Value) };
+
+        // The robot climbs onto the charger platform. Movement keeps the current height, so the lift has to be
+        // removed again before the robot drives away.
+        if (wasCharging != isCharging)
+        {
+            var robot = TransformLookup[entity];
+            robot.Position.y += isCharging ? visual.ChargingLift : -visual.ChargingLift;
+            TransformLookup[entity] = robot;
+        }
 
         var transform = TransformLookup[package.Value];
         transform.Scale = state.IsCarrying ? package.Scale : 0f;

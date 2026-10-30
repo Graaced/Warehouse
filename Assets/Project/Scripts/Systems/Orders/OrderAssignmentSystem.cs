@@ -32,10 +32,13 @@ public partial struct OrderAssignmentSystem : ISystem
     partial struct CollectIdleRobotsJob : IJobEntity
     {
         public NativeList<IdleRobot> Robots;
+        public float LowBattery;
 
-        public void Execute(Entity entity, in RobotState robotState, in CurrentOrder currentOrder, in RobotPosition position)
+        // A robot with a low battery takes no new order: it waits in the parking until a charger is free.
+        public void Execute(Entity entity, in RobotState robotState, in CurrentOrder currentOrder, in RobotPosition position,
+            in RobotBattery battery)
         {
-            if (robotState.Value == RobotStateKind.Idle && currentOrder.Order == Entity.Null)
+            if (robotState.Value == RobotStateKind.Idle && currentOrder.Order == Entity.Null && battery.Level >= LowBattery)
                 Robots.Add(new IdleRobot { Robot = entity, Cell = position.Cell });
         }
     }
@@ -129,6 +132,7 @@ public partial struct OrderAssignmentSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<ConfigWarehouse>();
         state.RequireForUpdate<OrderState>();
     }
 
@@ -140,7 +144,11 @@ public partial struct OrderAssignmentSystem : ISystem
         var queued = new NativeList<PendingOrder>(256, allocator);
         var targeted = new NativeHashSet<Entity>(256, allocator);
 
-        state.Dependency = new CollectIdleRobotsJob { Robots = robots }.Schedule(state.Dependency);
+        state.Dependency = new CollectIdleRobotsJob
+        {
+            Robots = robots,
+            LowBattery = SystemAPI.GetSingleton<ConfigWarehouse>().LowBattery
+        }.Schedule(state.Dependency);
 
         state.Dependency = new CollectOrdersJob
         {

@@ -9,6 +9,7 @@ public partial struct MovementSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<ConfigWarehouse>();
         state.RequireForUpdate<GridMap>();
     }
 
@@ -27,7 +28,8 @@ public partial struct MovementSystem : ISystem
             IntentLookup = SystemAPI.GetComponentLookup<RobotIntent>(true),
             Map = SystemAPI.GetComponent<GridMap>(grid).Value,
             Grid = grid,
-            DeltaTime = SystemAPI.Time.DeltaTime
+            DeltaTime = SystemAPI.Time.DeltaTime,
+            BatteryPerCell = SystemAPI.GetSingleton<ConfigWarehouse>().BatteryPerCell
         };
 
         movement.Priority = RobotIntent.CarrierPriority;

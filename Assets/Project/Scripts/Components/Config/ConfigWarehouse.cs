@@ -25,6 +25,11 @@ public struct ConfigWarehouse : IComponentData
     public float RespawnMinSeconds;
     public float RespawnMaxSeconds;
 
+    public float MinInitialBattery;
+    public float BatteryPerCell;
+    public float LowBattery;
+    public float ChargePerSecond;
+
     public int ApproachDistance;
     public int StationLoadWeight;
     public int LanePenalty;

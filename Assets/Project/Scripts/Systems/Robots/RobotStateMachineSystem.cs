@@ -80,6 +80,7 @@ public partial struct RobotStateMachineSystem : ISystem
             Stats = SystemAPI.GetSingletonEntity<WarehouseStats>(),
             Config = config,
             Now = SystemAPI.Time.ElapsedTime,
+            DeltaTime = SystemAPI.Time.DeltaTime,
             Random = Random.CreateFromIndex(frame++)
         }.Schedule(state.Dependency);
     }

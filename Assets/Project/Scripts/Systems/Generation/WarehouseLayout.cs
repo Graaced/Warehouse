@@ -88,8 +88,8 @@ public struct WarehouseLayout
         return new int2(1, Distribute(index, config.PackingStationCount));
     }
 
-    // Packing counters stand on the left edge and open towards +x, loading bays stand on the right edge and open
-    // towards -x: their service, queue and approach cells mirror each other.
+    // Packing counters stand on the left edge and open towards +x, loading bays and chargers stand on the right
+    // edge and open towards -x: their service, queue and approach cells mirror each other.
     public static int Facing(StationKind kind)
     {
         return kind == StationKind.Packing ? 1 : -1;

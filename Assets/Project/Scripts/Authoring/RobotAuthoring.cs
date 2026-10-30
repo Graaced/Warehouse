@@ -7,6 +7,7 @@ public class RobotAuthoring : MonoBehaviour
 {
     public float MetersPerSecond = 4f;
     public float RepathDelay = 1f;
+    public float ChargingLift = 0.1f;
     public GameObject Package;
 
     [Header("State Colors")]
@@ -52,7 +53,8 @@ public class RobotAuthoring : MonoBehaviour
             AddComponent<ActionTimer>(entity);
             AddComponent<CurrentOrder>(entity);
             AddComponent<RobotAssignment>(entity);
-            AddComponent<RobotVisual>(entity);
+            AddComponent<RobotBattery>(entity);
+            AddComponent(entity, new RobotVisual { ChargingLift = authoring.ChargingLift });
 
             AddComponent(entity, new URPMaterialPropertyBaseColor { Value = idleColor });
 
