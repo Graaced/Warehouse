@@ -56,7 +56,7 @@ public partial struct OrderAssignmentSystem : ISystem
             // sending a second robot would only leave it waiting in front of an empty shelf.
             if (orderState.Value == OrderStateKind.Queued)
                 Queued.Add(new PendingOrder { Order = entity, Shelf = orderShelf.Shelf, Sequence = sequence.Value });
-            else
+            else if (orderState.Value == OrderStateKind.Assigned)
                 TargetedShelves.Add(orderShelf.Shelf);
         }
     }

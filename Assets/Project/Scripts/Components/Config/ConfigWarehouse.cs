@@ -21,6 +21,7 @@ public struct ConfigWarehouse : IComponentData
 
     public float LiftSeconds;
     public float PackagingSeconds;
+    public float DeliverySeconds;
     public float RespawnMinSeconds;
     public float RespawnMaxSeconds;
 

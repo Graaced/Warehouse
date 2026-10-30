@@ -49,6 +49,7 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
     [Header("Timings (seconds)")]
     public float LiftSeconds = 0.4f;
     public float PackagingSeconds = 1.5f;
+    public float DeliverySeconds = 0.5f;
     public float RespawnMinSeconds = 5f;
     public float RespawnMaxSeconds = 15f;
 
@@ -97,6 +98,7 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
                 MaxPendingOrders = authoring.MaxPendingOrders,
                 LiftSeconds = authoring.LiftSeconds,
                 PackagingSeconds = authoring.PackagingSeconds,
+                DeliverySeconds = authoring.DeliverySeconds,
                 RespawnMinSeconds = authoring.RespawnMinSeconds,
                 RespawnMaxSeconds = authoring.RespawnMaxSeconds,
                 ApproachDistance = authoring.ApproachDistance,
@@ -121,7 +123,7 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
                 return Fail(authoring, "StationLength must be odd!");
 
             if (authoring.SideAisleWidth < WarehouseLayout.MinSideAisleWidth)
-                return Fail(authoring, $"SideAisleWidth must be at least {WarehouseLayout.MinSideAisleWidth} to fit the packing queues!");
+                return Fail(authoring, $"SideAisleWidth must be at least {WarehouseLayout.MinSideAisleWidth} to fit the station queues!");
 
             if (authoring.RespawnMinSeconds > authoring.RespawnMaxSeconds)
                 return Fail(authoring, "RespawnMinSeconds can't exceed RespawnMaxSeconds!");

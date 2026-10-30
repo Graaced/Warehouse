@@ -29,7 +29,7 @@ public static class TrafficRules
         if (!IsPassable(toKind, query, to))
             return false;
 
-        if (!RespectsCounterFlow(fromKind, toKind, from, to))
+        if (!RespectsStationFlow(fromKind, toKind, from, to))
             return false;
 
         if (!RespectsCarrierLane(map.Lane(from), map.Lane(to), query.Carrying))
@@ -38,7 +38,7 @@ public static class TrafficRules
         if (!IsOccupiedByOther(ref map, occupants, query.Robot, to))
             return true;
 
-        return !query.AvoidRobots && !(toKind == CellKind.PackingService && query.BlockOccupiedService);
+        return !query.AvoidRobots && !(toKind == CellKind.StationService && query.BlockOccupiedService);
     }
 
     // Moving against a traffic flow is allowed but expensive, so robots follow the flows when they can and
@@ -62,7 +62,7 @@ public static class TrafficRules
     }
 
     // Parking cells are a waiting area that robots with a package must stay out of. Chargers are only entered
-    // by the robot that is going to charge there, and counter slots only by the robot that is going to use them
+    // by the robot that is going to charge there, and station slots only by the robot that is going to use them
     // or by the robot that is leaving them.
     static bool IsPassable(CellKind kind, in PathQuery query, int2 cell)
     {
@@ -74,17 +74,17 @@ public static class TrafficRules
             CellKind.Parking => !query.Carrying,
             CellKind.ParkingLane => !query.Carrying,
             CellKind.Charger => isGoal,
-            CellKind.PackingService => isGoal || query.FromService,
+            CellKind.StationService => isGoal || query.FromService,
             _ => false
         };
     }
 
-    // Counter slots are entered from the front and left sideways along the counter: robots leaving a counter
+    // Station slots are entered from the front and left sideways along the station: robots leaving a station
     // never cross the robots that are arriving or waiting in the queue in front of it.
-    static bool RespectsCounterFlow(CellKind fromKind, CellKind toKind, int2 from, int2 to)
+    static bool RespectsStationFlow(CellKind fromKind, CellKind toKind, int2 from, int2 to)
     {
-        bool fromService = fromKind == CellKind.PackingService;
-        bool toService = toKind == CellKind.PackingService;
+        bool fromService = fromKind == CellKind.StationService;
+        bool toService = toKind == CellKind.StationService;
 
         if (fromService && !toService)
             return to.x == from.x;

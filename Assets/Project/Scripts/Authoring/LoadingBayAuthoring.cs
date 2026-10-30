@@ -8,7 +8,8 @@ public class LoadingBayAuthoring : MonoBehaviour
         public override void Bake(LoadingBayAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
-            AddComponent<LoadingAreaPosition>(entity);
+            AddComponent<StationLayout>(entity);
+            AddBuffer<StationSlot>(entity);
         }
     }
 }

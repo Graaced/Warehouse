@@ -19,11 +19,14 @@ public partial struct RobotStateMachineJob : IJobEntity
     [ReadOnly] public BufferLookup<StationSlot> SlotLookup;
     [ReadOnly] public BufferLookup<CellOccupant> OccupantLookup;
     [ReadOnly] public ComponentLookup<OrderShelf> OrderShelfLookup;
+    public ComponentLookup<OrderState> OrderStateLookup;
     public ComponentLookup<ShelfStock> StockLookup;
+    public ComponentLookup<WarehouseStats> StatsLookup;
     public EntityCommandBuffer Commands;
 
     public BlobAssetReference<GridMapBlob> Map;
     public Entity Grid;
+    public Entity Stats;
     public ConfigWarehouse Config;
     public double Now;
     public Random Random;
@@ -55,7 +58,7 @@ public partial struct RobotStateMachineJob : IJobEntity
                 break;
 
             case RobotStateKind.Transporting:
-                if (UpdateTransport(entity, ref assignment, ref destination, request, position.Cell, arrived))
+                if (UpdateStation(entity, StationKind.Packing, ref assignment, ref destination, request, position.Cell, arrived))
                 {
                     robotState.Value = RobotStateKind.Unloading;
                     timer.Expiry = Now + Config.PackagingSeconds;
@@ -67,11 +70,35 @@ public partial struct RobotStateMachineJob : IJobEntity
                     break;
 
                 ReleaseStation(ref assignment);
+                OrderStateLookup[currentOrder.Order] = new OrderState { Value = OrderStateKind.Packaged };
+                robotState.Value = RobotStateKind.Loading;
+                break;
+
+            case RobotStateKind.Loading:
+                if (assignment.Stage != StationStage.Working)
+                {
+                    if (UpdateStation(entity, StationKind.Loading, ref assignment, ref destination, request, position.Cell, arrived))
+                        timer.Expiry = Now + Config.DeliverySeconds;
+                    break;
+                }
+
+                if (Now < timer.Expiry)
+                    break;
+
+                ReleaseStation(ref assignment);
                 Commands.DestroyEntity(currentOrder.Order);
                 currentOrder.Order = Entity.Null;
                 robotState.Value = RobotStateKind.Idle;
+                CountDelivery();
                 break;
         }
+    }
+
+    void CountDelivery()
+    {
+        var stats = StatsLookup[Stats];
+        stats.Delivered++;
+        StatsLookup[Stats] = stats;
     }
 
     bool TryPickUp(Entity order)
@@ -85,18 +112,20 @@ public partial struct RobotStateMachineJob : IJobEntity
         stock.Empty = true;
         stock.RespawnAt = Now + Random.NextFloat(Config.RespawnMinSeconds, Config.RespawnMaxSeconds);
         StockLookup[shelf] = stock;
+        OrderStateLookup[order] = new OrderState { Value = OrderStateKind.PickedUp };
         return true;
     }
 
-    // A carrier never reserves a station slot from far away: holding slots while still crossing the warehouse
-    // starved the queues and left counters idle. It heads to the station approach cell first and only claims
-    // a slot once it is within ApproachDistance.
-    bool UpdateTransport(Entity robot, ref RobotAssignment assignment, ref RobotDestination destination,
+    // Shared by packing counters and loading bays. A carrier never reserves a station slot from far away: holding
+    // slots while still crossing the warehouse starved the queues and left stations idle. It heads to the station
+    // approach cell first and only claims a slot once it is within ApproachDistance. Returns true once, on the
+    // frame the robot reaches its service slot.
+    bool UpdateStation(Entity robot, StationKind kind, ref RobotAssignment assignment, ref RobotDestination destination,
         EnabledRefRW<PathRequest> request, int2 cell, bool arrived)
     {
         if (assignment.Stage == StationStage.None)
         {
-            ChooseStation(ref assignment, ref destination, request, cell);
+            ChooseStation(kind, ref assignment, ref destination, request, cell);
             return false;
         }
 
@@ -126,20 +155,31 @@ public partial struct RobotStateMachineJob : IJobEntity
                 TryPromote(robot, station, ref assignment, ref destination, request);
                 return false;
 
+            case StationStage.Serving:
+                if (!arrived)
+                    return false;
+
+                assignment.Stage = StationStage.Working;
+                return true;
+
             default:
-                return arrived;
+                return false;
         }
     }
 
     // Stations are weighted by distance plus the robots already heading there, so carriers spread over the
-    // counters instead of all choosing the nearest one.
-    void ChooseStation(ref RobotAssignment assignment, ref RobotDestination destination, EnabledRefRW<PathRequest> request, int2 cell)
+    // stations instead of all choosing the nearest one.
+    void ChooseStation(StationKind kind, ref RobotAssignment assignment, ref RobotDestination destination,
+        EnabledRefRW<PathRequest> request, int2 cell)
     {
         int best = -1;
         int bestScore = int.MaxValue;
 
         for (int i = 0; i < Stations.Length; i++)
         {
+            if (StationLayouts[i].Kind != kind)
+                continue;
+
             int score = GridUtils.Distance(StationLayouts[i].Center, cell) + Table.StationLoad[i] * Config.StationLoadWeight;
             if (score < bestScore)
             {
@@ -157,7 +197,7 @@ public partial struct RobotStateMachineJob : IJobEntity
         GoTo(ref destination, request, StationLayouts[best].Approach);
     }
 
-    // A newcomer may go straight to a free counter slot only if nobody is already waiting in the queue,
+    // A newcomer may go straight to a free service slot only if nobody is already waiting in the queue,
     // otherwise it joins the queue so that robots are served in arrival order.
     void TryTakeSlot(Entity robot, int station, ref RobotAssignment assignment, ref RobotDestination destination,
         EnabledRefRW<PathRequest> request, int2 cell)
@@ -195,7 +235,7 @@ public partial struct RobotStateMachineJob : IJobEntity
             TakeSlot(robot, station, target, slots[target], ref assignment, ref destination, request);
     }
 
-    // Only the robot that has been waiting the longest may leave the queue, and only towards a counter slot that
+    // Only the robot that has been waiting the longest may leave the queue, and only towards a service slot that
     // is physically empty: the previous robot may still be standing there while it drives away.
     void TryPromote(Entity robot, int station, ref RobotAssignment assignment, ref RobotDestination destination,
         EnabledRefRW<PathRequest> request)
