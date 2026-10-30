@@ -7,7 +7,9 @@ public enum CellKind : byte
     PackingStation,
     Charger,
     LoadingBay,
-    Parking
+    Parking,
+    PackingService,
+    ParkingLane
 }
 
 public enum CellFill : byte
@@ -16,9 +18,19 @@ public enum CellFill : byte
     Transparent
 }
 
+public enum CellLane : byte
+{
+    None,
+    Top,
+    CenterWest,
+    CenterEast,
+    Bottom
+}
+
 public struct CellState : IBufferElementData
 {
     public CellKind Kind;
     public CellFill Fill;
+    public CellLane Lane;
     public double RespawnTimer;
 }

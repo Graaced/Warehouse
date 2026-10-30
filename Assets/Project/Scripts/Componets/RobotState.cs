@@ -15,4 +15,8 @@ public enum RobotStateKind : byte
 public struct RobotState : IComponentData
 {
     public RobotStateKind Value;
+
+    public bool IsCarrying => Value == RobotStateKind.Transporting ||
+                              Value == RobotStateKind.Unloading ||
+                              Value == RobotStateKind.Loading;
 }

@@ -19,13 +19,19 @@ public partial struct MovementSystem : ISystem
 
         state.Dependency = new IntentJob().ScheduleParallel(state.Dependency);
 
-        state.Dependency = new MovementJob
+        var movement = new MovementJob
         {
             OccupantLookup = SystemAPI.GetBufferLookup<CellOccupant>(),
             IntentLookup = SystemAPI.GetComponentLookup<RobotIntent>(true),
             Grid = grid,
             Width = SystemAPI.GetComponent<GridDimensions>(grid).Width,
             DeltaTime = SystemAPI.Time.DeltaTime
-        }.Schedule(state.Dependency);
+        };
+
+        movement.Priority = 1;
+        state.Dependency = movement.Schedule(state.Dependency);
+
+        movement.Priority = 0;
+        state.Dependency = movement.Schedule(state.Dependency);
     }
 }

@@ -166,16 +166,17 @@ MonoBehaviour:
   ShelfColumnPairs: 6
   TopBlockRows: 6
   BottomBlockRows: 7
-  AisleWidth: 4
-  SideAisleWidth: 8
+  AisleWidth: 6
+  SideAisleWidth: 10
   PackingStationCount: 4
-  PackingStationLength: 3
+  StationLength: 3
   ChargerCount: 5
   LoadingBayCount: 3
-  MaxRobots: 60
-  InitialRobots: 27
-  OrdersPerMinute: 10
+  MaxRobots: 99
+  InitialRobots: 85
+  OrdersPerMinute: 235
   LiftSeconds: 0.4
+  PackagingSeconds: 1.5
   RespawnMinSeconds: 5
   RespawnMaxSeconds: 15
   Robot: {fileID: 680122068983977525, guid: bcc5383a40242704089cf201811d4b23, type: 3}

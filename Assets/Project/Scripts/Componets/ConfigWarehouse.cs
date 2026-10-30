@@ -8,8 +8,8 @@ public struct ConfigWarehouse : IComponentData
     public int AisleWidth;
     public int SideAisleWidth;
 
+    public int StationLength;
     public int PackingStationCount;
-    public int PackingStationLength;
     public int ChargerCount;
     public int LoadingBayCount;
 
@@ -18,6 +18,7 @@ public struct ConfigWarehouse : IComponentData
 
     public int OrdersPerMinute;
     public float LiftSeconds;
+    public float PackagingSeconds;
     public float RespawnMinSeconds;
     public float RespawnMaxSeconds;
 
