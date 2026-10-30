@@ -4,6 +4,7 @@ public enum OrderStateKind : byte
 {
     Queued,
     Assigned,
+    PickedUp,
     Packaged,
     Delivered
 }

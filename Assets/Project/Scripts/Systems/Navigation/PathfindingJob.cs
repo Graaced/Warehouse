@@ -15,7 +15,7 @@ public partial struct PathfindingJob : IJobEntity
     public void Execute(Entity entity, ref RobotNavigation navigation, in RobotPosition position, in RobotDestination destination,
         in RobotState robotState, DynamicBuffer<PathNode> path, EnabledRefRW<PathRequest> request)
     {
-        if (!request.ValueRO || navigation.Moving)
+        if (navigation.Moving)
             return;
 
         ref var map = ref Map.Value;
@@ -28,7 +28,7 @@ public partial struct PathfindingJob : IJobEntity
             Goal = destination.Cell,
             Carrying = robotState.IsCarrying,
             AvoidRobots = navigation.AvoidRobots,
-            FromService = map.Kind(position.Cell) == CellKind.PackingService
+            FromService = map.Kind(position.Cell) == CellKind.StationService
         };
 
         request.ValueRW = false;
@@ -37,7 +37,7 @@ public partial struct PathfindingJob : IJobEntity
         navigation.AvoidRobots = false;
         path.Clear();
 
-        // A robot leaving a counter first plans around the neighbouring slots that are still occupied, so the
+        // A robot leaving a station first plans around the neighbouring slots that are still occupied, so the
         // outer robots exit on their own free side. The middle robot, boxed in on both sides, gets a second plan
         // without that restriction and simply waits for one of its neighbours to leave.
         query.BlockOccupiedService = query.FromService;

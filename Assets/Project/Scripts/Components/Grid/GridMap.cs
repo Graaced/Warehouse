@@ -6,7 +6,7 @@ public enum CellKind : byte
     Floor,
     Shelf,
     PackingStation,
-    PackingService,
+    StationService,
     Charger,
     LoadingBay,
     Parking,

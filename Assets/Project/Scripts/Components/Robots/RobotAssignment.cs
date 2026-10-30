@@ -6,7 +6,8 @@ public enum StationStage : byte
     Approaching,
     ToQueue,
     InQueue,
-    Serving
+    Serving,
+    Working
 }
 
 // The robot is the single owner of its reservations. Who occupies a parking slot or a station slot

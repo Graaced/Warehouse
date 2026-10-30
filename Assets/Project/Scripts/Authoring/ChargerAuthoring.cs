@@ -8,7 +8,8 @@ public class ChargerAuthoring : MonoBehaviour
         public override void Bake(ChargerAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
-            AddComponent<ChargerPosition>(entity);
+            AddComponent<StationLayout>(entity);
+            AddBuffer<StationSlot>(entity);
         }
     }
 }

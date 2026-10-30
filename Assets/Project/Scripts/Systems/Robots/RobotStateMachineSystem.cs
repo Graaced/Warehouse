@@ -41,6 +41,7 @@ public partial struct RobotStateMachineSystem : ISystem
         state.RequireForUpdate<ConfigWarehouse>();
         state.RequireForUpdate<GridMap>();
         state.RequireForUpdate<RobotState>();
+        state.RequireForUpdate<WarehouseStats>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
         stationQuery = SystemAPI.QueryBuilder().WithAll<StationLayout, StationSlot>().Build();
@@ -70,12 +71,16 @@ public partial struct RobotStateMachineSystem : ISystem
             SlotLookup = SystemAPI.GetBufferLookup<StationSlot>(true),
             OccupantLookup = SystemAPI.GetBufferLookup<CellOccupant>(true),
             OrderShelfLookup = SystemAPI.GetComponentLookup<OrderShelf>(true),
+            OrderStateLookup = SystemAPI.GetComponentLookup<OrderState>(),
             StockLookup = SystemAPI.GetComponentLookup<ShelfStock>(),
+            StatsLookup = SystemAPI.GetComponentLookup<WarehouseStats>(),
             Commands = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged),
             Map = SystemAPI.GetComponent<GridMap>(grid).Value,
             Grid = grid,
+            Stats = SystemAPI.GetSingletonEntity<WarehouseStats>(),
             Config = config,
             Now = SystemAPI.Time.ElapsedTime,
+            DeltaTime = SystemAPI.Time.DeltaTime,
             Random = Random.CreateFromIndex(frame++)
         }.Schedule(state.Dependency);
     }

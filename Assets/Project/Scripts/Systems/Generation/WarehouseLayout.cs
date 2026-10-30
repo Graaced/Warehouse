@@ -88,19 +88,26 @@ public struct WarehouseLayout
         return new int2(1, Distribute(index, config.PackingStationCount));
     }
 
-    public int2 ServiceCell(int2 station, int offset)
+    // Packing counters stand on the left edge and open towards +x, loading bays and chargers stand on the right
+    // edge and open towards -x: their service, queue and approach cells mirror each other.
+    public static int Facing(StationKind kind)
     {
-        return station + new int2(ServiceOffset, offset);
+        return kind == StationKind.Packing ? 1 : -1;
     }
 
-    public int2 QueueCell(int2 station, int offset)
+    public int2 ServiceCell(int2 station, StationKind kind, int offset)
     {
-        return station + new int2(QueueOffset, offset);
+        return station + new int2(ServiceOffset * Facing(kind), offset);
     }
 
-    public int2 ApproachCell(int2 station)
+    public int2 QueueCell(int2 station, StationKind kind, int offset)
     {
-        return station + new int2(ApproachOffset, 0);
+        return station + new int2(QueueOffset * Facing(kind), offset);
+    }
+
+    public int2 ApproachCell(int2 station, StationKind kind)
+    {
+        return station + new int2(ApproachOffset * Facing(kind), 0);
     }
 
     public int2 RightColumn(int index)
