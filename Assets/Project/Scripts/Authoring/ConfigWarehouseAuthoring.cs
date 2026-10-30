@@ -12,18 +12,18 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
     [Range(1, 20)]
     public int BottomBlockRows = 7;
 
-    [Range(1, 6)]
-    public int AisleWidth = 4;
+    [Range(1, 8)]
+    public int AisleWidth = 6;
 
-    [Range(2, 12)]
-    public int SideAisleWidth = 8;
+    [Range(2, 14)]
+    public int SideAisleWidth = 10;
 
     [Header("Stations")]
+    [Range(1, 7)]
+    public int StationLength = 3;
+
     [Range(1, 10)]
     public int PackingStationCount = 4;
-
-    [Range(1, 7)]
-    public int PackingStationLength = 3;
 
     [Range(1, 10)]
     public int ChargerCount = 5;
@@ -44,6 +44,7 @@ public class ConfigWarehouseAuthoring : MonoBehaviour
 
     [Header("Timings (seconds)")]
     public float LiftSeconds = 0.4f;
+    public float PackagingSeconds = 1.5f;
     public float RespawnMinSeconds = 5f;
     public float RespawnMaxSeconds = 15f;
 

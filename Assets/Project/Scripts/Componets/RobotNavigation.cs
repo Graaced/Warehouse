@@ -6,5 +6,4 @@ public struct RobotNavigation : IComponentData
     public bool Moving;
     public bool AvoidRobots;
     public float BlockedTime;
-    public int Priority;
 }

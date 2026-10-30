@@ -29,14 +29,12 @@ public partial struct WHGenerationSystem : ISystem
         int shelvesX = config.SideAisleWidth + 2;
         int bottomBlockZ = parkingHeight + config.AisleWidth + 1;
         int topBlockZ = bottomBlockZ + config.BottomBlockRows + config.AisleWidth;
-        int shelfZoneLength = topBlockZ + config.TopBlockRows - bottomBlockZ;
-        int bayZoneLength = bottomBlockZ - 1;
         int rightColumnX = width - 2;
-        int stationHalfLength = config.PackingStationLength / 2;
+        int rightCount = config.LoadingBayCount + config.ChargerCount;
+        int stationHalfLength = config.StationLength / 2;
 
-        if (config.PackingStationCount * (config.PackingStationLength + 1) > height - 2 ||
-            config.ChargerCount * 2 > shelfZoneLength ||
-            config.LoadingBayCount * 2 > bayZoneLength)
+        if (config.PackingStationCount * (config.StationLength + 1) > height - 2 ||
+            rightCount * (config.StationLength + 1) > height - 2)
         {
             Debug.LogError("[WHGeneration] Not enough space for packing stations, chargers or loading bays!");
             return;
@@ -65,22 +63,37 @@ public partial struct WHGenerationSystem : ISystem
             var station = Spawn(em, config.PackingStation, cell);
             em.SetComponentData(station, new StationPosition { Cell = cell });
 
+            var slots = em.GetBuffer<StationSlot>(station);
+
             for (int dz = -stationHalfLength; dz <= stationHalfLength; dz++)
+            {
                 Mark(cells, width, cell + new int2(0, dz), CellKind.PackingStation);
+                Mark(cells, width, cell + new int2(1, dz), CellKind.PackingService);
+                slots.Add(new StationSlot { Cell = cell + new int2(1, dz), Service = true });
+            }
+
+            for (int dz = -stationHalfLength; dz <= stationHalfLength; dz++)
+                slots.Add(new StationSlot { Cell = cell + new int2(4, dz) });
         }
 
-        for (int i = 0; i < config.ChargerCount; i++)
+        for (int i = 0; i < rightCount; i++)
         {
-            var cell = new int2(rightColumnX, Distribute(i, config.ChargerCount, bottomBlockZ, shelfZoneLength));
-            var charger = Place(em, cells, width, config.Charger, cell, CellKind.Charger);
-            em.SetComponentData(charger, new ChargerPosition { Cell = cell });
-        }
+            var cell = new int2(rightColumnX, Distribute(i, rightCount, 1, height - 2));
+            bool isBay = i < config.LoadingBayCount;
 
-        for (int i = 0; i < config.LoadingBayCount; i++)
-        {
-            var cell = new int2(rightColumnX, Distribute(i, config.LoadingBayCount, 1, bayZoneLength));
-            var bay = Place(em, cells, width, config.LoadingBay, cell, CellKind.LoadingBay);
-            em.SetComponentData(bay, new LoadingAreaPosition { Cell = cell });
+            if (isBay)
+            {
+                var bay = Spawn(em, config.LoadingBay, cell);
+                em.SetComponentData(bay, new LoadingAreaPosition { Cell = cell });
+            }
+            else
+            {
+                var charger = Spawn(em, config.Charger, cell);
+                em.SetComponentData(charger, new ChargerPosition { Cell = cell });
+            }
+
+            for (int dz = -stationHalfLength; dz <= stationHalfLength; dz++)
+                Mark(cells, width, cell + new int2(0, dz), isBay ? CellKind.LoadingBay : CellKind.Charger);
         }
 
         for (int i = 0; i < config.MaxRobots; i++)
@@ -105,6 +118,24 @@ public partial struct WHGenerationSystem : ISystem
             em.SetComponentData(slot, new ParkingSlot { Cell = cell, Index = i, Active = true, Robot = robot });
             occupants[GridUtils.CellIndex(cell, width)] = new CellOccupant { Robot = robot };
         }
+
+        for (int z = 1; z <= parkingHeight; z++)
+        {
+            for (int x = shelvesX; x < shelvesX + span; x++)
+            {
+                if (cells[GridUtils.CellIndex(new int2(x, z), width)].Kind == CellKind.Floor)
+                    Mark(cells, width, new int2(x, z), CellKind.ParkingLane);
+            }
+        }
+
+        int centerLaneZ = bottomBlockZ + config.BottomBlockRows;
+        int centerSplitZ = centerLaneZ + config.AisleWidth / 2;
+        int topLaneZ = topBlockZ + config.TopBlockRows;
+
+        MarkLane(cells, width, shelvesX, span, parkingHeight + 1, bottomBlockZ, CellLane.Bottom);
+        MarkLane(cells, width, shelvesX, span, centerLaneZ, centerSplitZ, CellLane.CenterEast);
+        MarkLane(cells, width, shelvesX, span, centerSplitZ, topBlockZ, CellLane.CenterWest);
+        MarkLane(cells, width, shelvesX, span, topLaneZ, height, CellLane.Top);
 
         for (int z = 0; z < height; z++)
             for (int x = 0; x < width; x++)
@@ -135,6 +166,24 @@ public partial struct WHGenerationSystem : ISystem
     {
         Mark(cells, width, cell, kind);
         return Spawn(em, prefab, cell);
+    }
+
+    static void MarkLane(NativeArray<CellState> cells, int width, int fromX, int span, int fromZ, int toZ, CellLane lane)
+    {
+        for (int z = fromZ; z < toZ; z++)
+        {
+            for (int x = fromX; x < fromX + span; x++)
+            {
+                int index = GridUtils.CellIndex(new int2(x, z), width);
+                var cell = cells[index];
+
+                if (cell.Kind != CellKind.Floor)
+                    continue;
+
+                cell.Lane = lane;
+                cells[index] = cell;
+            }
+        }
     }
 
     static void Mark(NativeArray<CellState> cells, int width, int2 cell, CellKind kind)

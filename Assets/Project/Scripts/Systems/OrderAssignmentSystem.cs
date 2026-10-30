@@ -47,19 +47,29 @@ public partial struct OrderAssignmentSystem : ISystem
         }
 
         var orders = new NativeList<QueuedOrder>(Allocator.Temp);
+        var targetedShelves = new NativeHashSet<int2>(64, Allocator.Temp);
+
         foreach (var (orderState, destination, sequence, entity) in SystemAPI
                      .Query<RefRO<OrderState>, RefRO<DestinationCell>, RefRO<OrderSequence>>()
                      .WithEntityAccess())
         {
-            var cell = cells[GridUtils.CellIndex(destination.ValueRO.Cell, width)];
-            if (orderState.ValueRO.Value == OrderStateKind.Queued && cell.Fill == CellFill.Full)
-                orders.Add(new QueuedOrder { Entity = entity, Sequence = sequence.ValueRO.Value, Shelf = destination.ValueRO.Cell });
+            var shelf = destination.ValueRO.Cell;
+            if (cells[GridUtils.CellIndex(shelf, width)].Fill != CellFill.Full)
+                continue;
+
+            if (orderState.ValueRO.Value == OrderStateKind.Queued)
+                orders.Add(new QueuedOrder { Entity = entity, Sequence = sequence.ValueRO.Value, Shelf = shelf });
+            else
+                targetedShelves.Add(shelf);
         }
 
         orders.Sort();
 
         for (int i = 0; i < orders.Length && robots.Length > 0; i++)
         {
+            if (!targetedShelves.Add(orders[i].Shelf))
+                continue;
+
             int2 serviceCell = ServiceCell(orders[i].Shelf, cells, width);
             int nearest = Nearest(ref state, robots, serviceCell);
             Assign(ref state, robots[nearest], orders[i].Entity, serviceCell);
@@ -68,6 +78,7 @@ public partial struct OrderAssignmentSystem : ISystem
 
         robots.Dispose();
         orders.Dispose();
+        targetedShelves.Dispose();
     }
 
     int Nearest(ref SystemState state, NativeList<Entity> robots, int2 cell)

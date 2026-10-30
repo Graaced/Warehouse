@@ -11,9 +11,15 @@ public class ConfigWarehouseBaker : Baker<ConfigWarehouseAuthoring>
             return;
         }
 
-        if (authoring.PackingStationLength % 2 == 0)
+        if (authoring.StationLength % 2 == 0)
         {
-            Debug.LogError("[ConfigWarehouse] PackingStationLength must be odd!", authoring);
+            Debug.LogError("[ConfigWarehouse] StationLength must be odd!", authoring);
+            return;
+        }
+
+        if (authoring.SideAisleWidth < 5)
+        {
+            Debug.LogError("[ConfigWarehouse] SideAisleWidth must be at least 5 to fit the packing queues!", authoring);
             return;
         }
 
@@ -34,14 +40,15 @@ public class ConfigWarehouseBaker : Baker<ConfigWarehouseAuthoring>
             BottomBlockRows = authoring.BottomBlockRows,
             AisleWidth = authoring.AisleWidth,
             SideAisleWidth = authoring.SideAisleWidth,
+            StationLength = authoring.StationLength,
             PackingStationCount = authoring.PackingStationCount,
-            PackingStationLength = authoring.PackingStationLength,
             ChargerCount = authoring.ChargerCount,
             LoadingBayCount = authoring.LoadingBayCount,
             MaxRobots = authoring.MaxRobots,
             InitialRobots = authoring.InitialRobots,
             OrdersPerMinute = authoring.OrdersPerMinute,
             LiftSeconds = authoring.LiftSeconds,
+            PackagingSeconds = authoring.PackagingSeconds,
             RespawnMinSeconds = authoring.RespawnMinSeconds,
             RespawnMaxSeconds = authoring.RespawnMaxSeconds,
             Robot = GetEntity(authoring.Robot, TransformUsageFlags.Dynamic),

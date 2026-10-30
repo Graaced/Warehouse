@@ -12,12 +12,8 @@ public partial struct RobotVisualJob : IJobEntity
     {
         color.Value = palette.Get(state.Value);
 
-        bool carrying = state.Value == RobotStateKind.Transporting ||
-                        state.Value == RobotStateKind.Unloading ||
-                        state.Value == RobotStateKind.Loading;
-
         var transform = TransformLookup[package.Value];
-        transform.Scale = carrying ? package.Scale : 0f;
+        transform.Scale = state.IsCarrying ? package.Scale : 0f;
         TransformLookup[package.Value] = transform;
     }
 }

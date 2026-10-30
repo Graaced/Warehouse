@@ -13,10 +13,15 @@ public partial struct MovementJob : IJobEntity
     public Entity Grid;
     public int Width;
     public float DeltaTime;
+    public int Priority;
 
     public void Execute(Entity entity, ref RobotNavigation navigation, ref RobotPosition position, ref LocalTransform transform,
         in RobotConfig config, in RobotDestination destination, in DynamicBuffer<PathNode> path, EnabledRefRW<PathRequest> request)
     {
+        int priority = IntentLookup[entity].Priority;
+        if (priority != Priority)
+            return;
+
         var occupants = OccupantLookup[Grid];
 
         if (navigation.Moving && !Move(ref navigation, ref position, ref transform, config, path, occupants))
@@ -47,7 +52,7 @@ public partial struct MovementJob : IJobEntity
         var other = IntentLookup[occupant];
         bool swap = other.HasNext && other.Next.Equals(position.Cell);
 
-        if (swap && HasLowerPriority(entity, navigation.Priority, occupant, other.Priority))
+        if (swap && HasLowerPriority(entity, priority, occupant, other.Priority))
         {
             navigation.AvoidRobots = true;
             request.ValueRW = true;
