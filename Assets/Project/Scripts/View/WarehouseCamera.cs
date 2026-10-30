@@ -8,7 +8,7 @@ public class WarehouseCamera : MonoBehaviour
     public Color Background = new Color(0.54f, 0.53f, 0.5f);
 
     Camera cam;
-    EntityQuery gridQuery;
+    EntityQuery mapQuery;
 
     void Start()
     {
@@ -17,17 +17,20 @@ public class WarehouseCamera : MonoBehaviour
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = Background;
         transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        gridQuery = World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntityQuery(typeof(GridDimensions));
+        mapQuery = World.DefaultGameObjectInjectionWorld.EntityManager.CreateEntityQuery(typeof(GridMap));
     }
 
     void LateUpdate()
     {
-        if (!gridQuery.TryGetSingleton(out GridDimensions grid))
+        if (!mapQuery.TryGetSingleton(out GridMap map))
             return;
 
-        float halfWidth = grid.Width * 0.5f + Margin;
-        float halfHeight = grid.Height * 0.5f + Margin;
+        int width = map.Value.Value.Width;
+        int height = map.Value.Value.Height;
+
+        float halfWidth = width * 0.5f + Margin;
+        float halfHeight = height * 0.5f + Margin;
         cam.orthographicSize = Mathf.Max(halfHeight, halfWidth / cam.aspect);
-        transform.position = new Vector3((grid.Width - 1) * 0.5f, 50f, (grid.Height - 1) * 0.5f);
+        transform.position = new Vector3((width - 1) * 0.5f, 50f, (height - 1) * 0.5f);
     }
 }
